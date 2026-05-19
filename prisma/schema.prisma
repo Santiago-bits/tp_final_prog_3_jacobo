@@ -1,0 +1,84 @@
+// Archivo de configuración del esquema de base de datos (Prisma)
+// Documentación: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  correo        String   @unique
+  contrasena    String
+  rol           Rol      @default(VENDEDOR)
+  creadoEn      DateTime @default(now())  @map("creado_en")
+  actualizadoEn DateTime @updatedAt       @map("actualizado_en")
+
+  ventas Venta[]
+
+  @@map("usuarios")
+}
+
+enum Rol {
+  ADMIN
+  VENDEDOR
+}
+
+model Categoria {
+  id       Int      @id @default(autoincrement())
+  nombre   String   @unique
+  creadoEn DateTime @default(now()) @map("creado_en")
+
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Producto {
+  id            Int      @id @default(autoincrement())
+  codigo        String?  @unique
+  nombre        String
+  descripcion   String?
+  precioCosto   Float    @default(0)  @map("precio_costo")
+  precio        Float
+  stock         Int      @default(0)
+  stockMinimo   Int      @default(5)  @map("stock_minimo")
+  activo        Boolean  @default(true)
+  categoriaId   Int      @map("categoria_id")
+  creadoEn      DateTime @default(now())  @map("creado_en")
+  actualizadoEn DateTime @updatedAt       @map("actualizado_en")
+
+  categoria     Categoria      @relation(fields: [categoriaId], references: [id])
+  detallesVenta DetalleVenta[]
+
+  @@map("productos")
+}
+
+model Venta {
+  id        Int      @id @default(autoincrement())
+  total     Float
+  usuarioId Int      @map("usuario_id")
+  creadoEn  DateTime @default(now()) @map("creado_en")
+
+  usuario       Usuario        @relation(fields: [usuarioId], references: [id])
+  detallesVenta DetalleVenta[]
+
+  @@map("ventas")
+}
+
+model DetalleVenta {
+  id             Int   @id @default(autoincrement())
+  ventaId        Int   @map("venta_id")
+  productoId     Int   @map("producto_id")
+  cantidad       Int
+  precioUnitario Float @map("precio_unitario")
+
+  venta    Venta    @relation(fields: [ventaId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@map("detalles_venta")
+}
