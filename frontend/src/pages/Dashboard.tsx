@@ -8,7 +8,6 @@ import Ventas from './Ventas'
 import { AlertBell }      from '../mejoras_individuales/04_stock_alerts/AlertBell'
 import { AlertPanel }     from '../mejoras_individuales/04_stock_alerts/AlertPanel'
 import { useStockAlerts } from '../mejoras_individuales/04_stock_alerts/useStockAlerts'
-import { ThemeToggle }    from '../mejoras_individuales/02_dark_mode/ThemeToggle'
 import { useTheme }       from '../mejoras_individuales/02_dark_mode/ThemeContext'
 import { PageTransition } from '../mejoras_individuales/08_page_transition/PageTransition'
 import DashboardHome      from '../mejoras_individuales/03_dashboard_home/DashboardHome'
@@ -269,7 +268,6 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
           </div>
 
           <div style={st.topBarRight}>
-            <ThemeToggle />
             {user.rol === 'ADMIN' && (
               <div style={{ position: 'relative' }}>
                 <AlertBell
