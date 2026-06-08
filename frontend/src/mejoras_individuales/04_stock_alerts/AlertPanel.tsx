@@ -5,7 +5,7 @@ interface Props {
   onClose: () => void
   onMarkAllRead: () => void
   onClearAll: () => void
-  onNavigateStock: () => void
+  onNavigateStock: (productoId?: number) => void
 }
 
 export function AlertPanel({ alerts, onClose, onMarkAllRead, onClearAll, onNavigateStock }: Props) {
@@ -46,7 +46,7 @@ export function AlertPanel({ alerts, onClose, onMarkAllRead, onClearAll, onNavig
                 </div>
                 <div style={s.itemRight}>
                   <span style={s.time}>{fmt(a.timestamp)}</span>
-                  <button style={s.linkBtn} onClick={() => { onNavigateStock(); onClose() }}>→ Ver Stock</button>
+                  <button style={s.linkBtn} onClick={() => { onNavigateStock(a.productoId); onClose() }}>→ Ver Stock</button>
                 </div>
               </div>
             ))

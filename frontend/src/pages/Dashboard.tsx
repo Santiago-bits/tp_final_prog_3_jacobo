@@ -282,7 +282,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
                     onClose={() => setAlertPanel(false)}
                     onMarkAllRead={markAllRead}
                     onClearAll={clearAll}
-                    onNavigateStock={() => navigateStock()}
+                    onNavigateStock={(id) => navigateStock(id)}
                   />
                 )}
               </div>
