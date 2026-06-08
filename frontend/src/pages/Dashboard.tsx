@@ -275,7 +275,7 @@ const st: Record<string, React.CSSProperties> = {
   pageIcon:      { fontSize: '12px', flexShrink: 0 },
   logoutBtn:     { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', background: 'transparent', border: '1px solid #334155', borderRadius: '8px', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', width: '100%' },
   hLine:         { display: 'block', width: '22px', height: '2px', background: '#94a3b8', borderRadius: '2px' },
-  topBar:        { padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', flexShrink: 0 },
+  topBar:        { padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0f172a', flexShrink: 0, position: 'sticky', top: 0, zIndex: 20 },
   pageTitle:     { color: '#f1f5f9', fontSize: '18px', fontWeight: '700', margin: 0 },
   pagePath:      { color: '#cbd5e1', fontSize: '12px', margin: '3px 0 0' },
   topBarRight:   { display: 'flex', alignItems: 'center', gap: '10px' },

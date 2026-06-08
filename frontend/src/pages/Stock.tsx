@@ -224,7 +224,7 @@ const s: Record<string, React.CSSProperties> = {
   title:       { color: '#f1f5f9', fontSize: '20px', fontWeight: '700', margin: 0 },
   subtitle:    { color: '#cbd5e1', fontSize: '13px' },
   exportBtn:   { background: 'transparent', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '8px', padding: '7px 14px', color: '#eab308', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
-  stickyBar:   { position: 'sticky', top: 0, zIndex: 10, background: '#0f172a', paddingTop: '4px', paddingBottom: '8px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  stickyBar:   { position: 'sticky', top: '72px', zIndex: 10, background: '#0f172a', paddingTop: '4px', paddingBottom: '8px', display: 'flex', flexDirection: 'column', gap: '10px' },
   filterRow:   { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' as const },
   tabs:        { display: 'flex', gap: '6px' },
   tab:         { background: 'transparent', border: '1px solid #334155', borderRadius: '8px', padding: '7px 14px', color: '#94a3b8', fontSize: '12px', fontWeight: '500', cursor: 'pointer' },
