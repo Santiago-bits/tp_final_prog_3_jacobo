@@ -1,8 +1,6 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { AuthRequest } from '../types/index';
-
-const prisma = new PrismaClient();
 
 export const updatePreferences = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

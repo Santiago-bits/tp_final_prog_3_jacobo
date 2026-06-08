@@ -6,16 +6,14 @@ import cors from 'cors';
 import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { prisma } from './db';
 import authRoutes from './routes/auth.routes';
 import categoryRoutes from './routes/category.routes';
 import productRoutes from './routes/product.routes';
 import saleRoutes from './routes/sale.routes';
 import userRoutes from './routes/user.routes';
 import { setIO } from './socket';
-
-const prisma = new PrismaClient();
 
 async function seedIfEmpty() {
   const count = await prisma.usuario.count();

@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { getIO } from '../socket';
-
-const prisma = new PrismaClient();
 
 export const createSale = async (
   usuarioId: number,
