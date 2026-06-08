@@ -33,29 +33,35 @@ const allSections: Section[] = [
       },
     ],
   },
-  { id: 'alquiler',  label: 'Alquiler',          icon: '🏠', roles: ['ADMIN'] },
-  { id: 'servicios', label: 'Servicios Técnicos', icon: '🔧', roles: ['ADMIN'] },
+]
+
+const modalItems = [
+  { id: 'alquiler',      label: 'Alquiler',          icon: '🏠', roles: ['ADMIN'] },
+  { id: 'servicios',     label: 'Servicios Técnicos', icon: '🔧', roles: ['ADMIN'] },
+  { id: 'configuracion', label: 'Configuración',      icon: '⚙️', roles: ['ADMIN', 'VENDEDOR'] },
 ]
 
 const pageLabels: Record<string, string> = {
-  'home': 'Inicio', 'punto-venta': 'Punto de Venta',
+  home: 'Inicio', 'punto-venta': 'Punto de Venta',
   categorias: 'Categorías', articulos: 'Artículos', stock: 'Stock',
-  alquiler: 'Alquiler', servicios: 'Servicios Técnicos',
 }
+
+type ModalId = 'alquiler' | 'servicios' | 'configuracion' | null
 
 export default function Dashboard({ user, onLogout }: { user: User; onLogout: () => void }) {
   const sections      = allSections.filter(s => s.roles.includes(user.rol))
+  const visibleModals = modalItems.filter(m => m.roles.includes(user.rol))
   const reactNavigate = useNavigate()
   const location      = useLocation()
   const activePage    = getActivePage(location.pathname)
 
   const { isDark, toggle: toggleTheme } = useTheme()
 
-  const [expanded, setExpanded]           = useState<string[]>(['ventas', 'inventario'])
-  const [sidebarOpen, setSidebarOpen]     = useState(false)
-  const [alertPanelOpen, setAlertPanel]   = useState(false)
-  const [settingsOpen, setSettingsOpen]   = useState(false)
-  const [highlightId, setHighlightId]     = useState<number | null>(null)
+  const [expanded, setExpanded]       = useState<string[]>(['ventas', 'inventario'])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [alertPanelOpen, setAlertPanel] = useState(false)
+  const [activeModal, setActiveModal] = useState<ModalId>(null)
+  const [highlightId, setHighlightId] = useState<number | null>(null)
   const prevCount = useRef(0)
 
   const { alerts, unreadCount, markAllRead, clearAll } = useStockAlerts()
@@ -75,6 +81,11 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
     if (productoId) setHighlightId(productoId)
   }
 
+  const openModal = (id: ModalId) => {
+    setActiveModal(id)
+    setSidebarOpen(false)
+  }
+
   const isAnyPageActive = (sub: SubSection) =>
     sub.children?.some(p => p.id === activePage) ?? false
 
@@ -84,21 +95,56 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
     if (activePage === 'categorias')  return <Categorias user={user} />
     if (activePage === 'articulos')   return <Articulos user={user} />
     if (activePage === 'stock')       return <Stock user={user} highlightId={highlightId} onHighlightDone={() => setHighlightId(null)} />
-    return (
-      <div style={st.contentArea}>
-        <div style={st.devCard}>
-          <div style={st.devIcon}>🚧</div>
-          <h3 style={st.devTitle}>En Desarrollo</h3>
-          <p style={st.devText}>El módulo de <strong>{pageLabels[activePage]}</strong> está siendo construido.</p>
-          <div style={st.devBadge}>Próximamente</div>
-        </div>
-      </div>
-    )
+    return <DashboardHome user={user} navigate={navigate} />
+  }
+
+  const modalLabel: Record<string, string> = {
+    alquiler: '🏠 Alquiler', servicios: '🔧 Servicios Técnicos', configuracion: '⚙️ Configuración',
   }
 
   return (
     <div className="db-layout">
       {sidebarOpen && <div className="db-backdrop" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Modal overlay */}
+      {activeModal && (
+        <div style={st.modalOverlay} onClick={() => setActiveModal(null)}>
+          <div style={st.modalBox} onClick={e => e.stopPropagation()}>
+            <div style={st.modalHeader}>
+              <h3 style={st.modalTitle}>{modalLabel[activeModal]}</h3>
+              <button style={st.modalClose} onClick={() => setActiveModal(null)}>✕</button>
+            </div>
+
+            {activeModal === 'configuracion' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={st.modalDesc}>Seleccioná el tema visual del sistema. La preferencia se guarda en tu cuenta.</p>
+                <div style={st.themeRow}>
+                  <button
+                    style={{ ...st.themeCard, ...(isDark ? st.themeCardActive : {}) }}
+                    onClick={() => { if (!isDark) toggleTheme() }}>
+                    <span style={{ fontSize: '32px' }}>🌙</span>
+                    <span style={st.themeCardLabel}>Oscuro</span>
+                    {isDark && <span style={st.themeCardCheck}>✓ Activo</span>}
+                  </button>
+                  <button
+                    style={{ ...st.themeCard, ...(!isDark ? st.themeCardActiveLight : {}) }}
+                    onClick={() => { if (isDark) toggleTheme() }}>
+                    <span style={{ fontSize: '32px' }}>☀️</span>
+                    <span style={st.themeCardLabel}>Claro</span>
+                    {!isDark && <span style={{ ...st.themeCardCheck, color: '#ca8a04' }}>✓ Activo</span>}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={st.modalDevContent}>
+                <div style={{ fontSize: '52px' }}>🚧</div>
+                <p style={st.devText}>Este módulo está siendo construido.</p>
+                <div style={st.devBadge}>Próximamente</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Sidebar */}
       <aside className={`db-sidebar${sidebarOpen ? ' open' : ''}`}>
@@ -120,10 +166,10 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
             </div>
           </div>
 
-          {/* Inicio en sidebar */}
           <div style={st.navSection}>
             <p style={st.navLabel}>MENÚ PRINCIPAL</p>
             <nav style={st.nav}>
+              {/* Inicio */}
               <button
                 style={{ ...st.navItem, ...(activePage === 'home' ? st.navItemActive : {}), position: 'relative' }}
                 onClick={() => navigate('home')}>
@@ -132,6 +178,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
                 <span style={{ flex: 1, textAlign: 'left' }}>Inicio</span>
               </button>
 
+              {/* Secciones con hijos (Ventas) */}
               {sections.map(section => {
                 const secExpanded = expanded.includes(section.id)
                 const hasChildren = !!section.children?.length
@@ -186,34 +233,19 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
                   </div>
                 )
               })}
+
+              {/* Items de modal: Alquiler, Servicios Técnicos, Configuración */}
+              {visibleModals.map(item => (
+                <button
+                  key={item.id}
+                  style={{ ...st.navItem, ...(activeModal === item.id ? st.navItemActive : {}), position: 'relative' }}
+                  onClick={() => openModal(item.id as ModalId)}>
+                  <span style={st.navIcon}>{item.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                </button>
+              ))}
             </nav>
           </div>
-        </div>
-
-        {/* Configuración visual */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {settingsOpen && (
-            <div style={st.settingsPanel}>
-              <p style={st.settingsPanelTitle}>⚙️ Apariencia</p>
-              <div style={st.settingsRow}>
-                <button
-                  style={{ ...st.themeOptBtn, ...(isDark ? st.themeOptActive : {}) }}
-                  onClick={() => { if (!isDark) toggleTheme() }}>
-                  🌙 Oscuro
-                </button>
-                <button
-                  style={{ ...st.themeOptBtn, ...(!isDark ? st.themeOptActiveLight : {}) }}
-                  onClick={() => { if (isDark) toggleTheme() }}>
-                  ☀️ Claro
-                </button>
-              </div>
-            </div>
-          )}
-          <button
-            style={{ ...st.settingsBtn, ...(settingsOpen ? st.settingsBtnActive : {}) }}
-            onClick={() => setSettingsOpen(o => !o)}>
-            <span>⚙️</span><span>Configuración</span>
-          </button>
         </div>
 
         <button style={st.logoutBtn} onClick={onLogout}>
@@ -229,9 +261,9 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
               <span style={st.hLine} /><span style={st.hLine} /><span style={st.hLine} />
             </button>
             <div>
-              <h2 style={st.pageTitle}>{pageLabels[activePage] ?? ''}</h2>
+              <h2 style={st.pageTitle}>{pageLabels[activePage] ?? 'Inicio'}</h2>
               <p className="db-topbar-path" style={st.pagePath}>
-                SH Servicios &rsaquo; {pageLabels[activePage] ?? ''}
+                SH Servicios &rsaquo; {pageLabels[activePage] ?? 'Inicio'}
               </p>
             </div>
           </div>
@@ -312,20 +344,25 @@ const st: Record<string, React.CSSProperties> = {
   topBarUser:    { display: 'flex', alignItems: 'center', gap: '8px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '6px 12px' },
   topBarAvatar:  { width: '26px', height: '26px', borderRadius: '50%', background: '#eab308', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '11px' },
   topBarName:    { color: '#94a3b8', fontSize: '13px', fontWeight: '500' },
-  contentArea:   { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' },
-  devCard:       { background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', maxWidth: '400px' },
-  devIcon:       { fontSize: '48px' },
-  devTitle:      { color: '#f1f5f9', fontSize: '22px', fontWeight: '700', margin: 0 },
-  devText:       { color: '#94a3b8', fontSize: '15px', lineHeight: '1.6', margin: 0 },
-  devBadge:      { background: 'rgba(234,179,8,0.1)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)', padding: '6px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', marginTop: '8px' },
   footer:        { padding: '10px 20px', borderTop: '1px solid #1e293b', textAlign: 'center', flexShrink: 0 },
   footerText:    { color: '#334155', fontSize: '11px' },
-  settingsBtn:      { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', background: 'transparent', border: '1px solid #334155', borderRadius: '8px', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', width: '100%', transition: 'all 0.15s' },
-  settingsBtnActive:{ borderColor: 'rgba(234,179,8,0.4)', color: '#eab308', background: 'rgba(234,179,8,0.06)' },
-  settingsPanel:    { background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  settingsPanelTitle:{ color: '#cbd5e1', fontSize: '12px', fontWeight: '700', letterSpacing: '0.5px', margin: 0 },
-  settingsRow:      { display: 'flex', gap: '6px' },
-  themeOptBtn:      { flex: 1, padding: '8px 4px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s' },
-  themeOptActive:   { background: 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.35)', color: '#eab308', fontWeight: '700' },
-  themeOptActiveLight:{ background: 'rgba(250,204,21,0.12)', borderColor: 'rgba(250,204,21,0.4)', color: '#ca8a04', fontWeight: '700' },
+  devText:       { color: '#94a3b8', fontSize: '15px', lineHeight: '1.6', margin: 0, textAlign: 'center' },
+  devBadge:      { background: 'rgba(234,179,8,0.1)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)', padding: '6px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' },
+
+  /* Modal */
+  modalOverlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' },
+  modalBox:      { background: '#1e293b', border: '1px solid #334155', borderRadius: '18px', padding: '28px', width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '20px' },
+  modalHeader:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  modalTitle:    { color: '#f1f5f9', fontSize: '18px', fontWeight: '700', margin: 0 },
+  modalClose:    { background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' },
+  modalDesc:     { color: '#94a3b8', fontSize: '13px', lineHeight: '1.6', margin: 0 },
+  modalDevContent:{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '10px 0' },
+
+  /* Configuración — tarjetas de tema */
+  themeRow:         { display: 'flex', gap: '12px' },
+  themeCard:        { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '20px 12px', background: '#0f172a', border: '2px solid #334155', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s' },
+  themeCardActive:  { borderColor: '#eab308', background: 'rgba(234,179,8,0.06)' },
+  themeCardActiveLight:{ borderColor: '#fbbf24', background: 'rgba(251,191,36,0.08)' },
+  themeCardLabel:   { color: '#f1f5f9', fontSize: '13px', fontWeight: '600' },
+  themeCardCheck:   { color: '#eab308', fontSize: '11px', fontWeight: '700' },
 }
