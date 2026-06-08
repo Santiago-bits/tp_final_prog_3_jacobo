@@ -270,23 +270,25 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
 
           <div style={st.topBarRight}>
             <ThemeToggle />
-            <div style={{ position: 'relative' }}>
-              <AlertBell
-                unreadCount={unreadCount}
-                isOpen={alertPanelOpen}
-                onToggle={() => { setAlertPanel(o => !o); if (!alertPanelOpen) markAllRead() }}
-                hasNew={hasNew}
-              />
-              {alertPanelOpen && (
-                <AlertPanel
-                  alerts={alerts}
-                  onClose={() => setAlertPanel(false)}
-                  onMarkAllRead={markAllRead}
-                  onClearAll={clearAll}
-                  onNavigateStock={() => navigateStock()}
+            {user.rol === 'ADMIN' && (
+              <div style={{ position: 'relative' }}>
+                <AlertBell
+                  unreadCount={unreadCount}
+                  isOpen={alertPanelOpen}
+                  onToggle={() => { setAlertPanel(o => !o); if (!alertPanelOpen) markAllRead() }}
+                  hasNew={hasNew}
                 />
-              )}
-            </div>
+                {alertPanelOpen && (
+                  <AlertPanel
+                    alerts={alerts}
+                    onClose={() => setAlertPanel(false)}
+                    onMarkAllRead={markAllRead}
+                    onClearAll={clearAll}
+                    onNavigateStock={() => navigateStock()}
+                  />
+                )}
+              </div>
+            )}
             <div style={st.topBarUser}>
               <span style={st.topBarAvatar}>{user.nombre.charAt(0).toUpperCase()}</span>
               <span className="db-topbar-name" style={st.topBarName}>{user.nombre}</span>
