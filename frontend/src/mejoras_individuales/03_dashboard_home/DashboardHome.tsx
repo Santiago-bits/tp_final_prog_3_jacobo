@@ -59,7 +59,7 @@ export default function DashboardHome({ user, navigate }: { user: User; navigate
             onClick={() => st.page && navigate(st.page)}>
             <div style={s.cardTop}>
               <span style={s.cardIcon}>{st.icon}</span>
-              {st.page && <span style={{ color: '#64748b', fontSize: '12px' }}>Ver →</span>}
+              {st.page && <span style={{ color: 'var(--c-text-4)', fontSize: '12px' }}>Ver →</span>}
             </div>
             <p style={{ ...s.cardVal, color: st.color }}>
               {st.unit}{typeof st.value === 'number' && st.unit === '$' ? fmt(st.value) : st.value}
@@ -114,25 +114,25 @@ export default function DashboardHome({ user, navigate }: { user: User; navigate
 
 const s: Record<string, React.CSSProperties> = {
   wrap:       { padding: '28px', display: 'flex', flexDirection: 'column', gap: '24px' },
-  loading:    { color: '#94a3b8', padding: '60px', textAlign: 'center' },
+  loading:    { color: 'var(--c-text-3)', padding: '60px', textAlign: 'center' },
   header:     { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  title:      { color: '#f1f5f9', fontSize: '22px', fontWeight: '800', margin: 0 },
-  sub:        { color: '#94a3b8', fontSize: '13px', margin: '4px 0 0', textTransform: 'capitalize' },
+  title:      { color: 'var(--c-text-1)', fontSize: '22px', fontWeight: '800', margin: 0 },
+  sub:        { color: 'var(--c-text-3)', fontSize: '13px', margin: '4px 0 0', textTransform: 'capitalize' },
   grid:       { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' },
   card:       { border: '1px solid', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', transition: 'transform 0.15s, box-shadow 0.15s' },
   cardTop:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   cardIcon:   { fontSize: '24px' },
   cardVal:    { fontSize: '32px', fontWeight: '800', margin: 0, lineHeight: 1 },
-  cardLabel:  { color: '#94a3b8', fontSize: '12px', fontWeight: '600', margin: 0 },
-  section:    { background: '#1e293b', border: '1px solid #334155', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' },
-  sectionTitle:{ color: '#f1f5f9', fontSize: '15px', fontWeight: '700', margin: 0 },
-  empty:      { color: '#64748b', fontSize: '14px', textAlign: 'center', padding: '20px 0' },
-  tableWrap:  { display: 'flex', flexDirection: 'column', borderRadius: '10px', overflow: 'hidden', border: '1px solid #334155' },
-  tHead:      { display: 'flex', background: '#0f172a', padding: '8px 14px', borderBottom: '1px solid #334155' },
-  th:         { color: '#94a3b8', fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'flex', alignItems: 'center' } as React.CSSProperties,
-  tRow:       { display: 'flex', padding: '10px 14px', borderBottom: '1px solid #1e293b', background: '#1e293b' },
-  td:         { color: '#cbd5e1', fontSize: '13px', display: 'flex', alignItems: 'center' },
+  cardLabel:  { color: 'var(--c-text-3)', fontSize: '12px', fontWeight: '600', margin: 0 },
+  section:    { background: 'var(--c-bg-card)', border: '1px solid var(--c-border)', borderRadius: '14px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' },
+  sectionTitle:{ color: 'var(--c-text-1)', fontSize: '15px', fontWeight: '700', margin: 0 },
+  empty:      { color: 'var(--c-text-4)', fontSize: '14px', textAlign: 'center', padding: '20px 0' },
+  tableWrap:  { display: 'flex', flexDirection: 'column', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--c-border)' },
+  tHead:      { display: 'flex', background: 'var(--c-bg)', padding: '8px 14px', borderBottom: '1px solid var(--c-border)' },
+  th:         { color: 'var(--c-text-3)', fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase', display: 'flex', alignItems: 'center' } as React.CSSProperties,
+  tRow:       { display: 'flex', padding: '10px 14px', borderBottom: '1px solid var(--c-border-sub)', background: 'var(--c-bg-card)' },
+  td:         { color: 'var(--c-text-2)', fontSize: '13px', display: 'flex', alignItems: 'center' },
   quickLinks: { display: 'flex', gap: '10px', flexWrap: 'wrap' } as React.CSSProperties,
-  qlBtn:      { background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '10px 18px', color: '#cbd5e1', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
-  info:       { color: '#334155', fontSize: '12px', textAlign: 'center' } as React.CSSProperties,
+  qlBtn:      { background: 'var(--c-bg-card)', border: '1px solid var(--c-border)', borderRadius: '10px', padding: '10px 18px', color: 'var(--c-text-2)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  info:       { color: 'var(--c-text-4)', fontSize: '12px', textAlign: 'center' } as React.CSSProperties,
 }
