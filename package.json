@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "npx prisma generate && cd frontend && npm install && npm run build && cd .. && npx tsc",
+    "build": "npm install --include=dev && npx prisma generate && cd frontend && npm install --include=dev && npm run build && cd .. && npx tsc",
     "start": "NODE_ENV=production node dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -28,9 +28,9 @@
     "ts-node-dev": "^2.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "prisma": "^6.19.3",
-    "typescript": "^6.0.3",
+    "@prisma/client": "6.19.3",
+    "prisma": "6.19.3",
+    "typescript": "5.8.3",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
