@@ -4,7 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import type { User } from './types'
 import { ToastProvider } from './mejoras_individuales/01_toast/ToastContext'
-import { ThemeProvider } from './mejoras_individuales/02_dark_mode/ThemeContext'
+import { ThemeProvider, useTheme } from './mejoras_individuales/02_dark_mode/ThemeContext'
 
 const SESSION_DURATION = 12 * 60 * 60 * 1000
 
@@ -14,7 +14,9 @@ function clearSession() {
   localStorage.removeItem('loginTime')
 }
 
-function App() {
+function AppContent() {
+  const { applyFromDB } = useTheme()
+
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('user')
     if (!saved) return null
@@ -34,22 +36,31 @@ function App() {
     return () => clearTimeout(timer)
   }, [user])
 
+  // Aplicar preferencia guardada al recargar la página
+  useEffect(() => {
+    if (user?.colorSistema !== undefined) applyFromDB(user.colorSistema)
+  }, [])
+
   const handleLogin = (userData: User) => {
     localStorage.setItem('loginTime', String(Date.now()))
     localStorage.setItem('user', JSON.stringify(userData))
     setUser(userData)
+    applyFromDB(userData.colorSistema)
   }
 
   const handleLogout = () => { clearSession(); setUser(null) }
 
+  return !user
+    ? <Login onLogin={handleLogin} />
+    : <Dashboard user={user} onLogout={handleLogout} />
+}
+
+function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
         <ToastProvider>
-          {!user
-            ? <Login onLogin={handleLogin} />
-            : <Dashboard user={user} onLogout={handleLogout} />
-          }
+          <AppContent />
         </ToastProvider>
       </ThemeProvider>
     </BrowserRouter>

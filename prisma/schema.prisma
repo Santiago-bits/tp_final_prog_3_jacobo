@@ -18,6 +18,8 @@ model Usuario {
   creadoEn      DateTime @default(now())  @map("creado_en")
   actualizadoEn DateTime @updatedAt       @map("actualizado_en")
 
+  colorSistema  Int      @default(1) @map("color_sistema")
+
   ventas Venta[]
 
   @@map("usuarios")

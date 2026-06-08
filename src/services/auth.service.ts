@@ -19,5 +19,5 @@ export const login = async (correo: string, contrasena: string) => {
     process.env.JWT_SECRET as string,
     { expiresIn: '8h' }
   );
-  return { token, user: { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol } };
+  return { token, user: { id: usuario.id, nombre: usuario.nombre, correo: usuario.correo, rol: usuario.rol, colorSistema: usuario.colorSistema } };
 };

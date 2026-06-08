@@ -9,6 +9,7 @@ import { AlertBell }      from '../mejoras_individuales/04_stock_alerts/AlertBel
 import { AlertPanel }     from '../mejoras_individuales/04_stock_alerts/AlertPanel'
 import { useStockAlerts } from '../mejoras_individuales/04_stock_alerts/useStockAlerts'
 import { ThemeToggle }    from '../mejoras_individuales/02_dark_mode/ThemeToggle'
+import { useTheme }       from '../mejoras_individuales/02_dark_mode/ThemeContext'
 import { PageTransition } from '../mejoras_individuales/08_page_transition/PageTransition'
 import DashboardHome      from '../mejoras_individuales/03_dashboard_home/DashboardHome'
 import { PAGE_TO_URL, getActivePage } from '../mejoras_individuales/09_router/routeMap'
@@ -48,10 +49,13 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
   const location      = useLocation()
   const activePage    = getActivePage(location.pathname)
 
-  const [expanded, setExpanded]         = useState<string[]>(['ventas', 'inventario'])
-  const [sidebarOpen, setSidebarOpen]   = useState(false)
-  const [alertPanelOpen, setAlertPanel] = useState(false)
-  const [highlightId, setHighlightId]   = useState<number | null>(null)
+  const { isDark, toggle: toggleTheme } = useTheme()
+
+  const [expanded, setExpanded]           = useState<string[]>(['ventas', 'inventario'])
+  const [sidebarOpen, setSidebarOpen]     = useState(false)
+  const [alertPanelOpen, setAlertPanel]   = useState(false)
+  const [settingsOpen, setSettingsOpen]   = useState(false)
+  const [highlightId, setHighlightId]     = useState<number | null>(null)
   const prevCount = useRef(0)
 
   const { alerts, unreadCount, markAllRead, clearAll } = useStockAlerts()
@@ -186,6 +190,32 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout: ()
           </div>
         </div>
 
+        {/* Configuración visual */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {settingsOpen && (
+            <div style={st.settingsPanel}>
+              <p style={st.settingsPanelTitle}>⚙️ Apariencia</p>
+              <div style={st.settingsRow}>
+                <button
+                  style={{ ...st.themeOptBtn, ...(isDark ? st.themeOptActive : {}) }}
+                  onClick={() => { if (!isDark) toggleTheme() }}>
+                  🌙 Oscuro
+                </button>
+                <button
+                  style={{ ...st.themeOptBtn, ...(!isDark ? st.themeOptActiveLight : {}) }}
+                  onClick={() => { if (isDark) toggleTheme() }}>
+                  ☀️ Claro
+                </button>
+              </div>
+            </div>
+          )}
+          <button
+            style={{ ...st.settingsBtn, ...(settingsOpen ? st.settingsBtnActive : {}) }}
+            onClick={() => setSettingsOpen(o => !o)}>
+            <span>⚙️</span><span>Configuración</span>
+          </button>
+        </div>
+
         <button style={st.logoutBtn} onClick={onLogout}>
           <span>🚪</span><span>Cerrar Sesión</span>
         </button>
@@ -290,4 +320,12 @@ const st: Record<string, React.CSSProperties> = {
   devBadge:      { background: 'rgba(234,179,8,0.1)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)', padding: '6px 20px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', marginTop: '8px' },
   footer:        { padding: '10px 20px', borderTop: '1px solid #1e293b', textAlign: 'center', flexShrink: 0 },
   footerText:    { color: '#334155', fontSize: '11px' },
+  settingsBtn:      { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px', background: 'transparent', border: '1px solid #334155', borderRadius: '8px', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', width: '100%', transition: 'all 0.15s' },
+  settingsBtnActive:{ borderColor: 'rgba(234,179,8,0.4)', color: '#eab308', background: 'rgba(234,179,8,0.06)' },
+  settingsPanel:    { background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  settingsPanelTitle:{ color: '#cbd5e1', fontSize: '12px', fontWeight: '700', letterSpacing: '0.5px', margin: 0 },
+  settingsRow:      { display: 'flex', gap: '6px' },
+  themeOptBtn:      { flex: 1, padding: '8px 4px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s' },
+  themeOptActive:   { background: 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.35)', color: '#eab308', fontWeight: '700' },
+  themeOptActiveLight:{ background: 'rgba(250,204,21,0.12)', borderColor: 'rgba(250,204,21,0.4)', color: '#ca8a04', fontWeight: '700' },
 }
