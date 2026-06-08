@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import type { User } from './types'
+import { ToastProvider } from './mejoras_individuales/01_toast/ToastContext'
+import { ThemeProvider } from './mejoras_individuales/02_dark_mode/ThemeContext'
 
-const SESSION_DURATION = 12 * 60 * 60 * 1000 // 12 horas en ms
+const SESSION_DURATION = 12 * 60 * 60 * 1000
 
 function clearSession() {
   localStorage.removeItem('token')
@@ -16,15 +19,9 @@ function App() {
     const saved = localStorage.getItem('user')
     if (!saved) return null
     const parsed = JSON.parse(saved)
-    if (!parsed.nombre) {
-      clearSession()
-      return null
-    }
+    if (!parsed.nombre) { clearSession(); return null }
     const loginTime = Number(localStorage.getItem('loginTime') ?? 0)
-    if (Date.now() - loginTime > SESSION_DURATION) {
-      clearSession()
-      return null
-    }
+    if (Date.now() - loginTime > SESSION_DURATION) { clearSession(); return null }
     return parsed
   })
 
@@ -43,13 +40,20 @@ function App() {
     setUser(userData)
   }
 
-  const handleLogout = () => {
-    clearSession()
-    setUser(null)
-  }
+  const handleLogout = () => { clearSession(); setUser(null) }
 
-  if (!user) return <Login onLogin={handleLogin} />
-  return <Dashboard user={user} onLogout={handleLogout} />
+  return (
+    <BrowserRouter>
+      <ThemeProvider>
+        <ToastProvider>
+          {!user
+            ? <Login onLogin={handleLogin} />
+            : <Dashboard user={user} onLogout={handleLogout} />
+          }
+        </ToastProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  )
 }
 
 export default App

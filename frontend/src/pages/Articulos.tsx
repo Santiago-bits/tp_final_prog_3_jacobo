@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import type { User } from '../types'
 import { API } from '../config'
+import { ConfirmModal }         from '../mejoras_individuales/06_confirm_modal/ConfirmModal'
+import { EmptyState }           from '../mejoras_individuales/07_empty_state/EmptyState'
+import { exportArticulosPDF }   from '../mejoras_individuales/05_export/exportPDF'
+import { exportArticulosExcel } from '../mejoras_individuales/05_export/exportExcel'
+import { useToast }             from '../mejoras_individuales/01_toast/ToastContext'
 
 interface Categoria { id: number; nombre: string }
 interface Producto {
@@ -40,7 +45,10 @@ export default function Articulos({ user }: { user: User }) {
   const [expanded, setExpanded] = useState<number | null>(null)
   const [modal, setModal] = useState<{ open: boolean; editing: Producto | null }>({ open: false, editing: null })
   const [form, setForm] = useState<ProductoForm>(EMPTY_FORM)
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Producto | null>(null)
+  const [dlPDF, setDlPDF] = useState(false)
+  const [dlXLS, setDlXLS] = useState(false)
+  const { showToast } = useToast()
 
   const token = localStorage.getItem('token') ?? ''
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
@@ -94,20 +102,39 @@ export default function Articulos({ user }: { user: User }) {
     }
     if (modal.editing) {
       await fetch(`${API}/products/${modal.editing.id}`, { method: 'PUT', headers, body: JSON.stringify(body) })
+      showToast('Artículo actualizado correctamente', 'success')
     } else {
       await fetch(`${API}/products`, { method: 'POST', headers, body: JSON.stringify(body) })
+      showToast('Artículo creado correctamente', 'success')
     }
     closeModal(); fetchAll()
   }
 
-  const handleDelete = async (id: number) => {
-    await fetch(`${API}/products/${id}`, { method: 'DELETE', headers })
-    setDeleteConfirm(null); fetchAll()
+  const handleDelete = async (p: Producto) => {
+    await fetch(`${API}/products/${p.id}`, { method: 'DELETE', headers })
+    setDeleteConfirm(null)
+    fetchAll()
+    showToast(`"${p.nombre}" eliminado`, 'success')
   }
 
   const handleToggle = async (p: Producto) => {
     await fetch(`${API}/products/${p.id}`, { method: 'PUT', headers, body: JSON.stringify({ activo: !p.activo }) })
     fetchAll()
+    showToast(`"${p.nombre}" ${p.activo ? 'desactivado' : 'activado'}`, 'info')
+  }
+
+  const handleExportPDF = () => {
+    exportArticulosPDF(filtered)
+    setDlPDF(true)
+    showToast('PDF descargado', 'success')
+    setTimeout(() => setDlPDF(false), 2000)
+  }
+
+  const handleExportExcel = () => {
+    exportArticulosExcel(filtered)
+    setDlXLS(true)
+    showToast('Excel descargado', 'success')
+    setTimeout(() => setDlXLS(false), 2000)
   }
 
   const filtered = productos.filter(p => {
@@ -131,7 +158,15 @@ export default function Articulos({ user }: { user: User }) {
           <h2 style={s.title}>Artículos</h2>
           <p style={s.subtitle}>{filtered.length} de {productos.length} artículos</p>
         </div>
-        {isAdmin && <button style={s.btnPrimary} onClick={openCreate}>+ Nuevo Artículo</button>}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button style={s.exportBtn} onClick={handleExportPDF} disabled={dlPDF}>
+            {dlPDF ? '✓ Descargado' : '📄 PDF'}
+          </button>
+          <button style={{ ...s.exportBtn, color: '#4ade80', borderColor: 'rgba(74,222,128,0.3)' }} onClick={handleExportExcel} disabled={dlXLS}>
+            {dlXLS ? '✓ Descargado' : '📊 Excel'}
+          </button>
+          {isAdmin && <button style={s.btnPrimary} onClick={openCreate}>+ Nuevo Artículo</button>}
+        </div>
       </div>
 
       {/* Filtros */}
@@ -161,7 +196,12 @@ export default function Articulos({ user }: { user: User }) {
 
       {/* Grid de cards */}
       {filtered.length === 0
-        ? <div style={s.empty}>No hay artículos que coincidan con los filtros</div>
+        ? <EmptyState
+            icon={search ? '🔍' : '📦'}
+            title={search ? 'Sin resultados' : 'Sin artículos'}
+            description={search ? `No hay artículos que coincidan con "${search}"` : 'Todavía no hay artículos cargados.'}
+            action={search ? { label: 'Limpiar búsqueda', onClick: () => setSearch('') } : isAdmin ? { label: '+ Nuevo Artículo', onClick: openCreate } : undefined}
+          />
         : (
           <div style={s.grid}>
             {filtered.map(p => {
@@ -240,7 +280,7 @@ export default function Articulos({ user }: { user: User }) {
                       <button style={s.btnToggle} onClick={() => handleToggle(p)}>
                         {p.activo ? '🔒 Desactivar' : '🔓 Activar'}
                       </button>
-                      <button style={s.btnDelete} onClick={() => setDeleteConfirm(p.id)}>🗑️</button>
+                      <button style={s.btnDelete} onClick={() => setDeleteConfirm(p)}>🗑️</button>
                     </div>
                   )}
                 </div>
@@ -363,16 +403,12 @@ export default function Articulos({ user }: { user: User }) {
 
       {/* Confirmar eliminar */}
       {deleteConfirm !== null && (
-        <div style={s.overlay}>
-          <div style={{ ...s.modal, maxWidth: '400px' }}>
-            <h3 style={{ ...s.modalTitle, marginBottom: '12px' }}>Eliminar artículo</h3>
-            <p style={{ color: '#94a3b8', fontSize: '14px', margin: '0 0 24px' }}>¿Estás seguro? Esta acción no se puede deshacer.</p>
-            <div style={s.modalActions}>
-              <button style={s.btnSecondary} onClick={() => setDeleteConfirm(null)}>Cancelar</button>
-              <button style={s.btnDanger} onClick={() => handleDelete(deleteConfirm)}>Eliminar</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Eliminar artículo"
+          productName={deleteConfirm.nombre}
+          onCancel={() => setDeleteConfirm(null)}
+          onConfirm={() => handleDelete(deleteConfirm)}
+        />
       )}
     </div>
   )
@@ -437,6 +473,7 @@ const s: Record<string, React.CSSProperties> = {
   btnToggle:    { flex: 1, background: 'transparent', border: '1px solid #334155', borderRadius: '7px', padding: '7px 10px', color: '#94a3b8', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
   btnDelete:    { background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: '7px', padding: '7px 10px', color: '#f87171', fontSize: '12px', cursor: 'pointer' },
 
+  exportBtn:    { background: 'transparent', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '8px', padding: '7px 14px', color: '#eab308', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
   btnPrimary:   { background: '#eab308', color: '#0f172a', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' },
   btnSecondary: { background: 'transparent', color: '#94a3b8', border: '1px solid #334155', borderRadius: '8px', padding: '9px 18px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' },
   btnDanger:    { background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' },

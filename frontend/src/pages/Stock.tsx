@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { User } from '../types'
 import { API } from '../config'
+import { EmptyState }         from '../mejoras_individuales/07_empty_state/EmptyState'
+import { exportStockPDF }     from '../mejoras_individuales/05_export/exportPDF'
+import { exportStockExcel }   from '../mejoras_individuales/05_export/exportExcel'
+import { useToast }           from '../mejoras_individuales/01_toast/ToastContext'
 
 interface Categoria { id: number; nombre: string }
 interface Producto {
@@ -8,14 +12,22 @@ interface Producto {
   activo: boolean; categoria: Categoria
 }
 
-
-export default function Stock({ user }: { user: User }) {
+export default function Stock({ user, highlightId, onHighlightDone }: {
+  user: User
+  highlightId?: number | null
+  onHighlightDone?: () => void
+}) {
   const [productos, setProductos] = useState<Producto[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]     = useState(true)
   const [adjusting, setAdjusting] = useState<{ id: number; value: string } | null>(null)
-  const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all')
+  const [filter, setFilter]       = useState<'all' | 'low' | 'out'>('all')
+  const [search, setSearch]       = useState('')
+  const [dlPDF, setDlPDF]         = useState(false)
+  const [dlXLS, setDlXLS]         = useState(false)
+  const rowRefs = useRef<Record<number, HTMLDivElement | null>>({})
+  const { showToast } = useToast()
 
-  const token = localStorage.getItem('token') ?? ''
+  const token   = localStorage.getItem('token') ?? ''
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
   const isAdmin = user.rol === 'ADMIN'
 
@@ -27,14 +39,46 @@ export default function Stock({ user }: { user: User }) {
 
   useEffect(() => { fetchAll() }, [])
 
+  /* Scroll + highlight cuando llega highlightId desde Dashboard */
+  useEffect(() => {
+    if (!highlightId) return
+    const el = rowRefs.current[highlightId]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('stock-row-highlight')
+      const t = setTimeout(() => { el.classList.remove('stock-row-highlight'); onHighlightDone?.() }, 2500)
+      return () => clearTimeout(t)
+    }
+  }, [highlightId, productos])
+
   const handleAdjust = async (id: number, stock: number) => {
     await fetch(`${API}/products/${id}`, { method: 'PUT', headers, body: JSON.stringify({ stock }) })
-    setAdjusting(null); fetchAll()
+    setAdjusting(null)
+    fetchAll()
+    showToast('Stock actualizado correctamente', 'success')
+  }
+
+  const handleExportPDF = () => {
+    exportStockPDF(filtered)
+    setDlPDF(true)
+    showToast('PDF descargado', 'success')
+    setTimeout(() => setDlPDF(false), 2000)
+  }
+
+  const handleExportExcel = () => {
+    exportStockExcel(filtered)
+    setDlXLS(true)
+    showToast('Excel descargado', 'success')
+    setTimeout(() => setDlXLS(false), 2000)
   }
 
   const filtered = productos.filter(p => {
-    if (filter === 'low') return p.activo && p.stock > 0 && p.stock <= p.stockMinimo
-    if (filter === 'out') return p.stock === 0
+    if (filter === 'low') { if (!(p.activo && p.stock > 0 && p.stock <= p.stockMinimo)) return false }
+    if (filter === 'out') { if (p.stock !== 0) return false }
+    if (search) {
+      const q = search.toLowerCase()
+      if (!p.nombre.toLowerCase().includes(q) && !p.categoria.nombre.toLowerCase().includes(q)) return false
+    }
     return true
   })
 
@@ -47,38 +91,58 @@ export default function Stock({ user }: { user: User }) {
   return (
     <div className="page-container">
       <div style={s.header}>
-        <h2 style={s.title}>Stock</h2>
-        <p style={s.subtitle}>{productos.length} productos en inventario</p>
-      </div>
-
-      {/* Tarjetas resumen */}
-      <div className="stock-cards">
-        {[
-          { label: 'Total', value: productos.length, color: '#f1f5f9', bg: '#1e293b', border: '#334155' },
-          { label: 'Normal', value: okCount, color: '#4ade80', bg: 'rgba(74,222,128,0.05)', border: 'rgba(74,222,128,0.2)' },
-          { label: 'Stock bajo', value: lowCount, color: '#fbbf24', bg: 'rgba(251,191,36,0.05)', border: 'rgba(251,191,36,0.2)' },
-          { label: 'Sin stock', value: outCount, color: '#f87171', bg: 'rgba(248,113,113,0.05)', border: 'rgba(248,113,113,0.2)' },
-        ].map(c => (
-          <div key={c.label} style={{ ...s.card, background: c.bg, borderColor: c.border }}>
-            <p style={{ ...s.cardVal, color: c.color }}>{c.value}</p>
-            <p style={s.cardLbl}>{c.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filtros */}
-      <div style={s.tabs}>
-        {([
-          { key: 'all', label: 'Todos' },
-          { key: 'low', label: `⚠️ Stock bajo (${lowCount})` },
-          { key: 'out', label: `🔴 Sin stock (${outCount})` },
-        ] as const).map(f => (
-          <button key={f.key}
-            style={{ ...s.tab, ...(filter === f.key ? s.tabActive : {}) }}
-            onClick={() => setFilter(f.key)}>
-            {f.label}
+        <div>
+          <h2 style={s.title}>Stock</h2>
+          <p style={s.subtitle}>{productos.length} productos en inventario</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button style={s.exportBtn} onClick={handleExportPDF} disabled={dlPDF}>
+            {dlPDF ? '✓ Descargado' : '📄 PDF'}
           </button>
-        ))}
+          <button style={{ ...s.exportBtn, color: '#4ade80', borderColor: 'rgba(74,222,128,0.3)' }} onClick={handleExportExcel} disabled={dlXLS}>
+            {dlXLS ? '✓ Descargado' : '📊 Excel'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tarjetas resumen — sticky */}
+      <div style={s.stickyBar}>
+        <div className="stock-cards">
+          {[
+            { label: 'Total',      value: productos.length, color: '#f1f5f9', bg: '#1e293b',                    border: '#334155' },
+            { label: 'Normal',     value: okCount,          color: '#4ade80', bg: 'rgba(74,222,128,0.05)',    border: 'rgba(74,222,128,0.2)' },
+            { label: 'Stock bajo', value: lowCount,         color: '#fbbf24', bg: 'rgba(251,191,36,0.05)',    border: 'rgba(251,191,36,0.2)' },
+            { label: 'Sin stock',  value: outCount,         color: '#f87171', bg: 'rgba(248,113,113,0.05)',   border: 'rgba(248,113,113,0.2)' },
+          ].map(c => (
+            <div key={c.label} style={{ ...s.card, background: c.bg, borderColor: c.border }}>
+              <p style={{ ...s.cardVal, color: c.color }}>{c.value}</p>
+              <p style={s.cardLbl}>{c.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Filtros + búsqueda */}
+        <div style={s.filterRow}>
+          <div style={s.tabs}>
+            {([
+              { key: 'all', label: 'Todos' },
+              { key: 'low', label: `⚠️ Stock bajo (${lowCount})` },
+              { key: 'out', label: `🔴 Sin stock (${outCount})` },
+            ] as const).map(f => (
+              <button key={f.key}
+                style={{ ...s.tab, ...(filter === f.key ? s.tabActive : {}) }}
+                onClick={() => setFilter(f.key)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <input
+            style={s.searchInput}
+            placeholder="🔍 Buscar producto o categoría..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Tabla */}
@@ -93,13 +157,21 @@ export default function Stock({ user }: { user: User }) {
         </div>
 
         {filtered.length === 0
-          ? <div style={s.empty}>No hay productos en esta categoría</div>
+          ? (
+            <div style={{ padding: '16px' }}>
+              <EmptyState
+                icon="🔍"
+                title="Sin resultados"
+                description={search ? `No hay productos que coincidan con "${search}"` : 'No hay productos en esta categoría'}
+                action={search ? { label: 'Limpiar búsqueda', onClick: () => setSearch('') } : undefined}
+              />
+            </div>
+          )
           : filtered.map(p => {
-            const status = p.stock === 0 ? 'out' : p.stock <= p.stockMinimo ? 'low' : 'ok'
+            const status     = p.stock === 0 ? 'out' : p.stock <= p.stockMinimo ? 'low' : 'ok'
             const stockColor = status === 'out' ? '#f87171' : status === 'low' ? '#fbbf24' : '#4ade80'
-
             return (
-              <div key={p.id} style={s.row}>
+              <div key={p.id} ref={el => { rowRefs.current[p.id] = el }} className="stock-row" style={s.row}>
                 <span style={{ ...s.td, flex: 1 }}>
                   <span style={s.name}>{p.nombre}</span>
                 </span>
@@ -131,8 +203,7 @@ export default function Stock({ user }: { user: User }) {
                 {isAdmin && (
                   <span style={{ ...s.td, width: '120px', justifyContent: 'center' }}>
                     {adjusting?.id !== p.id && (
-                      <button style={s.btnEdit}
-                        onClick={() => setAdjusting({ id: p.id, value: String(p.stock) })}>
+                      <button style={s.btnEdit} onClick={() => setAdjusting({ id: p.id, value: String(p.stock) })}>
                         Ajustar stock
                       </button>
                     )}
@@ -148,31 +219,31 @@ export default function Stock({ user }: { user: User }) {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  container:  { padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px', overflowX: 'hidden' },
-  loading:    { color: '#94a3b8', padding: '40px', textAlign: 'center' },
-  header:     { display: 'flex', flexDirection: 'column', gap: '2px' },
-  title:      { color: '#f1f5f9', fontSize: '20px', fontWeight: '700', margin: 0 },
-  subtitle:   { color: '#cbd5e1', fontSize: '13px' },
-  cards:      { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' },
-  card:       { background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '18px 20px' },
-  cardVal:    { fontSize: '30px', fontWeight: '800', margin: 0 },
-  cardLbl:    { color: '#cbd5e1', fontSize: '12px', margin: '4px 0 0', fontWeight: '500' },
-  tabs:       { display: 'flex', gap: '6px' },
-  tab:        { background: 'transparent', border: '1px solid #334155', borderRadius: '8px', padding: '7px 14px', color: '#94a3b8', fontSize: '12px', fontWeight: '500', cursor: 'pointer' },
-  tabActive:  { background: 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)', color: '#eab308', fontWeight: '600' },
-  tableWrap:  { background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' },
-  thead:      { display: 'flex', alignItems: 'center', padding: '10px 16px', background: '#0f172a', borderBottom: '1px solid #334155' },
-  th:         { color: '#cbd5e1', fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase' as const, display: 'flex', alignItems: 'center' },
-  row:        { display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #1e293b', background: '#1e293b' },
-  td:         { display: 'flex', alignItems: 'center', fontSize: '14px', color: '#cbd5e1' },
-  empty:      { padding: '40px', textAlign: 'center', color: '#cbd5e1', fontSize: '14px' },
-  name:       { color: '#f1f5f9', fontWeight: '600' },
-  catBadge:   { background: '#0f172a', color: '#94a3b8', border: '1px solid #334155', padding: '2px 9px', borderRadius: '20px', fontSize: '11px', whiteSpace: 'nowrap' as const },
-  badgeOut:   { background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
-  badgeLow:   { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
-  badgeOk:    { background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
-  adjustInput:{ background: '#0f172a', border: '1px solid #eab308', borderRadius: '6px', padding: '5px 8px', color: '#f1f5f9', fontSize: '13px', outline: 'none', width: '64px' },
-  btnSave:    { background: '#4ade80', border: 'none', borderRadius: '5px', padding: '5px 8px', color: '#0f172a', fontWeight: '700', cursor: 'pointer', fontSize: '13px' },
-  btnCancel:  { background: '#334155', border: 'none', borderRadius: '5px', padding: '5px 8px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' },
-  btnEdit:    { background: '#334155', border: '1px solid #475569', borderRadius: '6px', padding: '5px 12px', color: '#cbd5e1', fontSize: '12px', cursor: 'pointer', fontWeight: '500' },
+  loading:     { color: '#94a3b8', padding: '40px', textAlign: 'center' },
+  header:      { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' },
+  title:       { color: '#f1f5f9', fontSize: '20px', fontWeight: '700', margin: 0 },
+  subtitle:    { color: '#cbd5e1', fontSize: '13px' },
+  exportBtn:   { background: 'transparent', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '8px', padding: '7px 14px', color: '#eab308', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
+  stickyBar:   { position: 'sticky', top: 0, zIndex: 10, background: '#0f172a', paddingTop: '4px', paddingBottom: '8px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  filterRow:   { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' as const },
+  tabs:        { display: 'flex', gap: '6px' },
+  tab:         { background: 'transparent', border: '1px solid #334155', borderRadius: '8px', padding: '7px 14px', color: '#94a3b8', fontSize: '12px', fontWeight: '500', cursor: 'pointer' },
+  tabActive:   { background: 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)', color: '#eab308', fontWeight: '600' },
+  searchInput: { flex: 1, minWidth: '200px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '7px 14px', color: '#f1f5f9', fontSize: '13px', outline: 'none' },
+  card:        { background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '18px 20px' },
+  cardVal:     { fontSize: '30px', fontWeight: '800', margin: 0 },
+  cardLbl:     { color: '#cbd5e1', fontSize: '12px', margin: '4px 0 0', fontWeight: '500' },
+  thead:       { display: 'flex', alignItems: 'center', padding: '10px 16px', background: '#0f172a', borderBottom: '1px solid #334155' },
+  th:          { color: '#cbd5e1', fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase' as const, display: 'flex', alignItems: 'center' },
+  row:         { display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #1e293b', background: '#1e293b', transition: 'background 0.15s' },
+  td:          { display: 'flex', alignItems: 'center', fontSize: '14px', color: '#cbd5e1' },
+  name:        { color: '#f1f5f9', fontWeight: '600' },
+  catBadge:    { background: '#0f172a', color: '#94a3b8', border: '1px solid #334155', padding: '2px 9px', borderRadius: '20px', fontSize: '11px', whiteSpace: 'nowrap' as const },
+  badgeOut:    { background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
+  badgeLow:    { background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
+  badgeOk:     { background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' as const, display: 'inline-block' },
+  adjustInput: { background: '#0f172a', border: '1px solid #eab308', borderRadius: '6px', padding: '5px 8px', color: '#f1f5f9', fontSize: '13px', outline: 'none', width: '64px' },
+  btnSave:     { background: '#4ade80', border: 'none', borderRadius: '5px', padding: '5px 8px', color: '#0f172a', fontWeight: '700', cursor: 'pointer', fontSize: '13px' },
+  btnCancel:   { background: '#334155', border: 'none', borderRadius: '5px', padding: '5px 8px', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' },
+  btnEdit:     { background: '#334155', border: '1px solid #475569', borderRadius: '6px', padding: '5px 12px', color: '#cbd5e1', fontSize: '12px', cursor: 'pointer', fontWeight: '500' },
 }

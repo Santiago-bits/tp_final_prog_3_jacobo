@@ -72,6 +72,71 @@ body {
   .db-topbar-name { display: none; }
 }
 
+/* ══════════════════════════════════════════════════
+   MEJORAS INDIVIDUALES — Animaciones y efectos
+   ══════════════════════════════════════════════════ */
+
+/* 08 — Transición de página */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 01 — Toast */
+@keyframes slideInToast {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastProgress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* 04 — Animación de campana */
+@keyframes bellRing {
+  0%   { transform: rotate(0); }
+  10%  { transform: rotate(14deg); }
+  20%  { transform: rotate(-12deg); }
+  30%  { transform: rotate(10deg); }
+  40%  { transform: rotate(-8deg); }
+  50%  { transform: rotate(6deg); }
+  60%  { transform: rotate(-4deg); }
+  70%  { transform: rotate(2deg); }
+  80%  { transform: rotate(-1deg); }
+  100% { transform: rotate(0); }
+}
+.bell-ring { animation: bellRing 0.6s ease !important; }
+
+/* 11 — Hover en filas de Stock */
+.stock-row:hover { background: rgba(255,255,255,0.04) !important; }
+
+/* Scroll-to-highlight en Stock */
+@keyframes rowPulse {
+  0%,100% { background: #1e293b; }
+  25%,75%  { background: rgba(234,179,8,0.18); }
+  50%      { background: rgba(234,179,8,0.28); }
+}
+.stock-row-highlight { animation: rowPulse 2.5s ease !important; }
+
+/* 10 — Barra indicadora de página activa (ya incluida inline, refuerzo CSS) */
+.page-item-active-bar {
+  position: absolute; left: 0; top: 6px; bottom: 6px;
+  width: 3px; background: #eab308; border-radius: 0 3px 3px 0;
+}
+
+/* ── 15 — Modo Claro ─────────────────────────────── */
+[data-theme="light"] body,
+body[data-theme="light"] {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+[data-theme="light"] .db-layout    { background: #f1f5f9; }
+[data-theme="light"] .db-sidebar   { background: #ffffff; border-right-color: #e2e8f0; }
+[data-theme="light"] .db-main      { background: #f1f5f9; }
+[data-theme="light"] .login-left   { background: linear-gradient(160deg,#1e3a5f 0%,#0f2147 100%); }
+[data-theme="light"] .login-right  { background: #f8fafc; }
+[data-theme="light"] .login-card   { background: #ffffff; border-color: #e2e8f0; }
+
 @media print {
   body * { visibility: hidden; }
   #ticket, #ticket * { visibility: visible; }
